@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * Implementation of both a niave and bloom differential.
@@ -12,13 +13,16 @@ public class Differential {
     private String differentialFilePath;
     private String differentialType;
 
-    // Filter type
-    public static final String NIAVE = "niave";
-    public static final String BLOOM = "bloom";
+    // Filter type + bloomFilter size constants
+    private static final String NIAVE = "niave";
+    private static final String BLOOM = "bloom";
+    private static final int NUM_HASH_FUNCTIONS = 10;
 
+    // Bloom filter, if applicable
+    private BloomFilterRan bloomFilter = null;
 
     /**
-     *     Use a bloom filter for differential references
+     *  Use a bloom filter for differential references
      */
     Differential(String databaseFilePath, String differentialFilePath, String type){
         this.databaseFilePath = databaseFilePath;
@@ -30,37 +34,43 @@ public class Differential {
      * Parse the different file into a bloom filter
      * @return
      */
-    private BloomFilterRan createFiler(){
+    public BloomFilterRan createFiler(){
         if ( this.differentialType == NIAVE) return null;
 
         try {
             FileReader fileReader = new FileReader(differentialFilePath);
             BufferedReader bufferedReader = new BufferedReader(fileReader);
+
+            ArrayList<String> keys = new ArrayList<>();
             String currentLine;
 
-            while ( (currentLine = bufferedReader.readLine()) != null ) {
+            // Read each key into our arraylist.. TODO: How can we know the bloomFilter setSize without doing this?
+            while ( (currentLine = bufferedReader.readLine()) != null ) keys.add(getKeyFromLine(currentLine));
 
-            }
-
+            // Create our bloomfilter, store our keys
+            bloomFilter = new BloomFilterRan(keys.size(), NUM_HASH_FUNCTIONS);
+            for ( String key : keys ) bloomFilter.add(key);
         } catch ( IOException e ) {
             System.out.println(e.getLocalizedMessage());
             System.out.println("Failed to read differential file");
         }
 
-        return null;
+        return bloomFilter;
     }
 
-    private String retrieveRecord(String key){
+    /**
+     * Retrieves a record based on differential mode
+     * Generally: Hits differential file if: In Niave mode OR it's in the bloom fiter
+     * Note: Also hits the differential file if our bloom filter is null
+     * @param key The key to the desired record
+     * @return The record if it can be found, else an empty string
+     */
+    public String retrieveRecord(String key){
         String record;
 
-        // Bloom queries filter first, hits differential if we get a positive result
-        if ( differentialType == BLOOM ) {
-            // TODO: Check bloom filter
-            // TODO: If in bloom filter, hit differential
-        }
-
-        // Niave hits differential regardless
-        if ( differentialType == NIAVE ) {
+        // Hit the differential file if: We're in niave mode OR the bloom filter contains the key OR the bloom filter doesn't exist
+        if ( (differentialType.equals(BLOOM) && (bloomFilter == null || bloomFilter.appears(key))) ||
+                differentialType.equals(NIAVE)) {
             record = getRecordFromFile(key, differentialFilePath);
 
             if ( !record.equals("") ) return record;
@@ -70,13 +80,31 @@ public class Differential {
     }
 
     /**
-     * Given a file path, return the key ( if it exists )
+     * Given a file path, return the record associated to the key ( if it can be found in the file )
      * @param key The key to lookup
      * @param filePath The file to check
      * @return The record, or an empty string if it does not exist
      */
     private String getRecordFromFile(String key, String filePath) {
-        return "";
+        String result = "";
+
+        try {
+            FileReader fileReader = new FileReader(filePath);
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+            String currentLine;
+
+            while ( (currentLine = bufferedReader.readLine()) != null ) {
+                String keyForLine = getKeyFromLine(currentLine);
+
+                if ( keyForLine.equals(key) ) return currentLine;
+            }
+
+        } catch ( IOException e ) {
+            System.out.println(e.getLocalizedMessage());
+            System.out.println("Failed to read file: " + filePath);
+        }
+
+        return result;
     }
 
 
