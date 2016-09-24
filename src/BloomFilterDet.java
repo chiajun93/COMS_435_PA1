@@ -12,6 +12,7 @@ public class BloomFilterDet {
     }
 
     public void add(String s){
+        s = s.toLowerCase();
 
     }
 
@@ -33,6 +34,6 @@ public class BloomFilterDet {
 
     public static void main(String[] args){
         BloomFilterDet det = new BloomFilterDet(16, 2);
-        System.out.println(det.dataSize());
+        System.out.println((long)Math.pow(2, 40) + (long)Math.pow(2, 8) + 0x3b );
     }
 }
