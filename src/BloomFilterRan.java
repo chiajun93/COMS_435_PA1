@@ -40,16 +40,18 @@ public class BloomFilterRan {
      * Add a string to the bloom filter
      * @param string
      */
-    private void add(String string){
+    public void add(String string){
         for ( Pair<Pair<Integer, Integer>, Integer> abpPair : randomHashValues ) {
             int a = abpPair.getKey().getKey();
             int b = abpPair.getKey().getValue();
             int p = abpPair.getValue();
 
-            int hashIndex = ((a * string.hashCode()) + b) % p;
+            int hashIndex = ((a * string.hashCode()) + b);
 
             // Account for overflow
             if ( hashIndex < 0 ) hashIndex = Math.abs(Integer.MIN_VALUE) - Math.abs(hashIndex);
+
+            hashIndex = hashIndex % p;
 
             filterTable.set(hashIndex);
         }
@@ -62,17 +64,21 @@ public class BloomFilterRan {
      * @param string string in question
      * @return If it appears in our bloom filter
      */
-    private boolean appears(String string){
+    public boolean appears(String string){
+        if ( string == null ) return false;
+
         // Compute each hash, check if bit is set
         for ( Pair<Pair<Integer, Integer>, Integer> abpPair : randomHashValues ) {
             int a = abpPair.getKey().getKey();
             int b = abpPair.getKey().getValue();
             int p = abpPair.getValue();
 
-            int hashIndex = ((a * string.hashCode()) + b) % p;
+            int hashIndex = ((a * string.hashCode()) + b);
 
             // Account for overflow
             if ( hashIndex < 0 ) hashIndex = Math.abs(Integer.MIN_VALUE) - Math.abs(hashIndex);
+
+            hashIndex = hashIndex % p;
 
             // If the bit is ever not set, then we return false
             if ( !filterTable.get(hashIndex) ) return false;
@@ -81,12 +87,23 @@ public class BloomFilterRan {
         return true;
     }
 
+    public void countZeros(){
+        System.out.println("Size: " + filterTable.size());
+        int zeroCount = 0;
+
+        for(int i = 0; i < filterTable.size(); i++ ){
+            if ( !filterTable.get(i) ) zeroCount++;
+        }
+
+        System.out.println("Zero Count: " + zeroCount);
+    }
+
 
     /**
      * The total size of the filter, in bits
      * @return
      */
-    private int filterSize(){
+    public int filterSize(){
         return largestPrimeNumber;
     }
 
@@ -94,7 +111,7 @@ public class BloomFilterRan {
      * The total number of elements stored in the filter
      * @return
      */
-    private int dataSize(){
+    public int dataSize(){
         return numElements;
     }
 
@@ -102,7 +119,7 @@ public class BloomFilterRan {
      * The number of hash functions in use
      * @return size of hash values array
      */
-    private int numHashes(){
+    public int numHashes(){
         return numHashFunctions;
     }
 
