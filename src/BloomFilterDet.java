@@ -6,10 +6,12 @@ public class BloomFilterDet {
     private int setSize;
     private int numHashes;
     private int filterSize;
+    private int numOfData;
     private BitSet filter;
-    private BigInteger FNV_64INIT = new BigInteger("14695981039346656037");
-    private BigInteger FNV64PRIME = new BigInteger("109951168211");
+    private static BigInteger FNV_64INIT = new BigInteger("14695981039346656037");
+    private static BigInteger FNV64PRIME = new BigInteger("109951168211");
     private final BigInteger twoPow64 = new BigInteger("2").pow(64);
+
 
     /**
      * Create a bloom filter that use deterministic functions
@@ -20,7 +22,6 @@ public class BloomFilterDet {
     public BloomFilterDet(int setSize, int bitsPerElement) {
         this.bitsPerElement = bitsPerElement;
         this.setSize = setSize;
-        this.filterSize = setSize * bitsPerElement;
 
         filter = new BitSet(setSize);
         this.numHashes = (int) Math.ceil(Math.log(2) * bitsPerElement);
@@ -33,14 +34,17 @@ public class BloomFilterDet {
      */
     public void add(String s) {
         s = s.toLowerCase();
-//        System.out.println(fnv64(s) % filterSize);
-        filterSize++;
-        int idx = (int)(fnv64(s) % filterSize);
-        if(idx < 0){
-            idx = Math.abs(Integer.MIN_VALUE) - Math.abs(idx);
-        }
-        filter.set(idx);
+        long hashVal = (int)fnv64(s);
 
+        for(int i = 0; i < numHashes; i++){
+            int a = (int)hashVal;
+            int b = (int)(hashVal >> 32);
+            int idx = a + b * i;
+            if(idx < 0){
+                idx = Math.abs(Integer.MIN_VALUE) - Math.abs(idx);
+            }
+            filter.set(idx);
+        }
     }
 
     /**
@@ -51,15 +55,20 @@ public class BloomFilterDet {
      */
     public boolean appears(String s) {
         s = s.toLowerCase();
-        int idx = (int)(fnv64(s) % filterSize);
-        if(idx < 0){
-            idx = Math.abs(Integer.MIN_VALUE) - Math.abs(idx);
-        }
-        if(filter.get(idx)) {
-            return true;
-        }
+        long hashVal = (int)fnv64(s);
 
-        return false;
+        for(int i = 0; i < numHashes; i++){
+            int a = (int)hashVal;
+            int b = (int)(hashVal >> 32);
+            int idx = a + b * i;
+            if(idx < 0){
+                idx = Math.abs(Integer.MIN_VALUE) - Math.abs(idx);
+            }
+            if(!filter.get(idx)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -68,7 +77,7 @@ public class BloomFilterDet {
      * @return
      */
     public int filterSize() {
-        return setSize * bitsPerElement;
+        return filterSize;
     }
 
 
@@ -78,7 +87,7 @@ public class BloomFilterDet {
      * @return
      */
     public int dataSize() {
-        return filter.cardinality();
+        return numOfData;
     }
 
     /**
@@ -106,9 +115,11 @@ public class BloomFilterDet {
     }
 
     public static void main(String[] args) {
-        BloomFilterDet det = new BloomFilterDet(5000, 1);
-        det.add("Test");
-        System.out.println(det.appears("test"));
+        BloomFilterDet det = new BloomFilterDet(500, 4);
+        det.add("test");
+        det.add("test2");
+        det.add("tes");
+        System.out.println(det.appears("test1"));
         det.print();
     }
 }
