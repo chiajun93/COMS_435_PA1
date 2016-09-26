@@ -34,7 +34,7 @@ public class BloomFilterDet {
      */
     public void add(String s) {
         s = s.toLowerCase();
-        long hashVal = (int)fnv64(s);
+        long hashVal = fnv64(s);
 
         for(int i = 0; i < numHashes; i++){
             int a = (int)hashVal;
@@ -45,6 +45,7 @@ public class BloomFilterDet {
             }
             filter.set(idx);
         }
+        numOfData++;
     }
 
     /**
@@ -55,7 +56,7 @@ public class BloomFilterDet {
      */
     public boolean appears(String s) {
         s = s.toLowerCase();
-        long hashVal = (int)fnv64(s);
+        long hashVal = fnv64(s);
 
         for(int i = 0; i < numHashes; i++){
             int a = (int)hashVal;
@@ -77,7 +78,7 @@ public class BloomFilterDet {
      * @return
      */
     public int filterSize() {
-        return filterSize;
+        return filter.cardinality();
     }
 
 
@@ -110,16 +111,33 @@ public class BloomFilterDet {
         return h.longValue();
     }
 
+//    private long fnv64NoBig(String s) {
+//        long h = 0xcbf29ce484222325L;
+//
+//        for (int i = 0; i < s.length(); i++) {
+//            h ^= s.charAt(i);
+//            h = (h * 0x100000001b3L) ;
+//        }
+//
+//        return h;
+//    }
+
     public void print(){
         System.out.println(filter);
     }
 
     public static void main(String[] args) {
         BloomFilterDet det = new BloomFilterDet(500, 4);
-        det.add("test");
-        det.add("test2");
-        det.add("tes");
+        long start = System.currentTimeMillis();
+        for(int i = 0; i < 500; i++){
+            det.add("test" + i);
+        }
+
         System.out.println(det.appears("test1"));
+
+        long end = System.currentTimeMillis();
+        System.out.println("Runtime: " + (end - start));
+
         det.print();
     }
 }
