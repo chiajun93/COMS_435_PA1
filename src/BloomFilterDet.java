@@ -22,7 +22,7 @@ public class BloomFilterDet {
     public BloomFilterDet(int setSize, int bitsPerElement) {
         this.bitsPerElement = bitsPerElement;
         this.setSize = setSize;
-
+        filterSize = setSize * bitsPerElement;
         filter = new BitSet(setSize);
         this.numHashes = (int) Math.ceil(Math.log(2) * bitsPerElement);
     }
@@ -36,13 +36,16 @@ public class BloomFilterDet {
         s = s.toLowerCase();
         long hashVal = fnv64(s);
 
-        for(int i = 0; i < numHashes; i++){
-            int a = (int)hashVal;
-            int b = (int)(hashVal >> 32);
+        for (int i = 0; i < numHashes; i++) {
+            int a = (int) hashVal;
+            int b = (int) (hashVal >> 32);
             int idx = a + b * i;
-            if(idx < 0){
+            if (idx < 0) {
                 idx = Math.abs(Integer.MIN_VALUE) - Math.abs(idx);
             }
+
+            idx = idx % filterSize;
+
             filter.set(idx);
         }
         numOfData++;
@@ -58,14 +61,17 @@ public class BloomFilterDet {
         s = s.toLowerCase();
         long hashVal = fnv64(s);
 
-        for(int i = 0; i < numHashes; i++){
-            int a = (int)hashVal;
-            int b = (int)(hashVal >> 32);
+        for (int i = 0; i < numHashes; i++) {
+            int a = (int) hashVal;
+            int b = (int) (hashVal >> 32);
             int idx = a + b * i;
-            if(idx < 0){
+            if (idx < 0) {
                 idx = Math.abs(Integer.MIN_VALUE) - Math.abs(idx);
             }
-            if(!filter.get(idx)) {
+
+            idx = idx % filterSize;
+
+            if (!filter.get(idx)) {
                 return false;
             }
         }
@@ -100,6 +106,12 @@ public class BloomFilterDet {
         return numHashes;
     }
 
+    /**
+     * Returns the hash value of a string that is calculated by FNV-64 hash functions
+     *
+     * @param s
+     * @return
+     */
     private long fnv64(String s) {
         BigInteger h = FNV_64INIT;
 
@@ -122,14 +134,14 @@ public class BloomFilterDet {
 //        return h;
 //    }
 
-    public void print(){
+    public void print() {
         System.out.println(filter);
     }
 
     public static void main(String[] args) {
         BloomFilterDet det = new BloomFilterDet(500, 4);
         long start = System.currentTimeMillis();
-        for(int i = 0; i < 500; i++){
+        for (int i = 0; i < 500; i++) {
             det.add("test" + i);
         }
 
