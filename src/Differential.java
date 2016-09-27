@@ -11,12 +11,11 @@ public class Differential {
     // File paths
     private String databaseFilePath;
     private String differentialFilePath;
-    private String differentialType;
+    public String differentialType;
 
     // Filter type + bloomFilter size constants
-    private static final String NAIVE = "naive";
-    private static final String BLOOM = "bloom";
-    private static final int NUM_HASH_FUNCTIONS = 10;
+    public static final String NAIVE = "naive";
+    public static final String BLOOM = "bloom";
 
     private static boolean DEBUG = true;
 
@@ -50,7 +49,8 @@ public class Differential {
             while ( (currentLine = bufferedReader.readLine()) != null ) keys.add(getKeyFromLine(currentLine));
 
             // Create our bloomfilter, store our keys
-            bloomFilter = new BloomFilterRan(keys.size(), NUM_HASH_FUNCTIONS);
+            bloomFilter = new BloomFilterRan(keys.size(), 8);
+
             for ( String key : keys ) bloomFilter.add(key);
         } catch ( IOException e ) {
             System.out.println(e.getLocalizedMessage());
@@ -86,12 +86,18 @@ public class Differential {
             }
         }
 
+        System.out.println("Not found in differential.");
+
+        record = getRecordFromFile(key, databaseFilePath);
+
         if ( DEBUG ) {
-            System.out.println("Not found in differential.");
-            System.out.println("Found in database.");
+            if ( record.length() > 0 )
+                System.out.println("Found in database.");
+             else
+                System.out.println("Not Found in database.");
         }
 
-        return getRecordFromFile(key, databaseFilePath);
+        return record;
     }
 
     /**
@@ -102,6 +108,7 @@ public class Differential {
      */
     private String getRecordFromFile(String key, String filePath) {
         String result = "";
+        int lineCount = 0;
 
         try {
             FileReader fileReader = new FileReader(filePath);
@@ -112,6 +119,10 @@ public class Differential {
                 String keyForLine = getKeyFromLine(currentLine);
 
                 if ( keyForLine.equals(key) ) return currentLine;
+
+                if ( lineCount % 1000000 == 0 && DEBUG ) System.out.println("Read DB line: " + ((lineCount / 1000000) + 1) + " million");
+
+                lineCount++;
             }
 
         } catch ( IOException e ) {
@@ -130,20 +141,18 @@ public class Differential {
      */
     private static String getKeyFromLine(String line){
         String[] words = line.split(" ");
-        String key = "";
+        String firstInt = "";
 
         for (String word : words ) {
             try {
-                // Check if we are still reading words, if not break (we've already read the key)
+                // Check if we are still reading words, if not break and return the substring of 0 -> currentIndex
+                firstInt = word;
                 Integer.parseInt(word);
                 break;
-            } catch ( NumberFormatException e) {
-                // In this case, we are still reading words
-                key += word + " ";
-            }
+            } catch ( NumberFormatException e) {}
         }
 
-        return key.substring(0, key.length() - 1); // Remove last space
+        return line.substring(0, line.indexOf(firstInt)); // Remove last space
     }
 
     /**
@@ -157,13 +166,14 @@ public class Differential {
 
         bloomDifferential.createFilter();
         System.out.println("Filter created..");
+        System.out.println("NumHashes: " + bloomDifferential.bloomFilter.numHashes());
 
         bloomDifferential.bloomFilter.countZeros();
 
-        System.out.println("Search for: record in differential");
-        System.out.println(bloomDifferential.retrieveRecord("ARTICLE_DET 1_NUM Section_NOUN 1_NUM"));
+        System.out.println("Search for: record in differential [ARTICLE_DET 1_NUM Section_NOUN 1_NUM ]");
+        System.out.println(bloomDifferential.retrieveRecord("ARTICLE_DET 1_NUM Section_NOUN 1_NUM "));
 
-        System.out.println("Search for: record in database");
+        System.out.println("Search for: record in database [dakljdl1kkn1nsdn1dmn1,d1,mdn]");
         System.out.println(bloomDifferential.retrieveRecord("dakljdl1kkn1nsdn1dmn1,d1,mdn"));
 
         System.out.println("-----------------------------------");
@@ -172,11 +182,11 @@ public class Differential {
         System.out.println("Creating Naive Differential..");
         Differential naiveDifferential = new Differential("database.txt", "DiffFile.txt", NAIVE);
 
-        System.out.println("Search for: record in differential");
-        System.out.println(naiveDifferential.retrieveRecord("ARTICLE_DET 1_NUM Section_NOUN 1_NUM"));
+        System.out.println("Search for: record in differential [ARTICLE_DET 1_NUM Section_NOUN 1_NUM ]");
+        System.out.println(naiveDifferential.retrieveRecord("ARTICLE_DET 1_NUM Section_NOUN 1_NUM "));
 
-        System.out.println("Search for: record in database");
-        System.out.println(naiveDifferential.retrieveRecord("ARCHBISHOP_NOUN LEIGHTON_NOUN ._. _END_"));
+        System.out.println("Search for: record in database [ARCHBISHOP_NOUN LEIGHTON_NOUN ._. _END_ ]");
+        System.out.println(naiveDifferential.retrieveRecord("ARCHBISHOP_NOUN LEIGHTON_NOUN ._. _END_ "));
     }
 
 }

@@ -15,9 +15,8 @@ public class BloomFilterRan {
     private BitSet filterTable;
 
     // Misc counts
-    private int totalSetSize;
+    private int filterSize;
     private int numHashFunctions;
-    private int largestPrimeNumber; // The actual size of the bloom filter
     private int numElements;
 
     /**
@@ -26,8 +25,8 @@ public class BloomFilterRan {
      * @param bitsPerElement number of hash functions to use
      */
     BloomFilterRan(int setSize, int bitsPerElement){
-        totalSetSize = setSize;
-        numHashFunctions = bitsPerElement;
+        filterSize = setSize * bitsPerElement;
+        numHashFunctions = (int) Math.ceil(Math.log(2 * (filterSize/setSize)));
         numElements = 0;
 
         randomHashValues = new ArrayList<>();
@@ -41,6 +40,8 @@ public class BloomFilterRan {
      * @param string
      */
     public void add(String string){
+        string = string.toLowerCase();
+
         for ( Pair<Pair<Integer, Integer>, Integer> abpPair : randomHashValues ) {
             int a = abpPair.getKey().getKey();
             int b = abpPair.getKey().getValue();
@@ -67,6 +68,8 @@ public class BloomFilterRan {
     public boolean appears(String string){
         if ( string == null ) return false;
 
+        string = string.toLowerCase();
+
         // Compute each hash, check if bit is set
         for ( Pair<Pair<Integer, Integer>, Integer> abpPair : randomHashValues ) {
             int a = abpPair.getKey().getKey();
@@ -84,9 +87,13 @@ public class BloomFilterRan {
             if ( !filterTable.get(hashIndex) ) return false;
         }
 
+
         return true;
     }
 
+    /**
+     *  Used to count the number of zeros that appear in the filterTable
+     */
     public void countZeros(){
         System.out.println("Size: " + filterTable.size());
         int zeroCount = 0;
@@ -104,7 +111,7 @@ public class BloomFilterRan {
      * @return
      */
     public int filterSize(){
-        return largestPrimeNumber;
+        return filterSize;
     }
 
     /**
@@ -131,25 +138,23 @@ public class BloomFilterRan {
         if ( randomHashValues.size() > 0 ) return;
 
         // Find next prime, use it to generate hash values
-        int currentNumber = totalSetSize + 1;
+        int currentNumber = filterSize + 1;
 
+        // Skip to next prime
+        while ( !isPrimeNumber(currentNumber) ) currentNumber++;
 
-        while ( randomHashValues.size() < numHashFunctions ) {
+        // Generate K hash values
+        for(int i = 0; i < numHashFunctions; i++ ) {
+            int a = (int) (Math.random() * (currentNumber - 1));
+            int b = (int) (Math.random() * (currentNumber - 1));
 
-            // For each prime number, generate a new hash value set
-            if ( isPrimeNumber(currentNumber) ) {
-                int a = (int) (Math.random() * (currentNumber - 1));
-                int b = (int) (Math.random() * (currentNumber - 1));
-                Pair<Integer, Integer> abPair = new Pair<>(a, b);
+            Pair<Integer, Integer> abPair = new Pair<>(a, b);
+            Pair<Pair<Integer, Integer>, Integer> abpPair = new Pair<>(abPair, currentNumber);
 
-                Pair<Pair<Integer, Integer>, Integer> abpPair = new Pair<>(abPair, currentNumber);
-
-                randomHashValues.add(abpPair);
-                largestPrimeNumber = currentNumber;
-            }
-
-            currentNumber++;
+            randomHashValues.add(abpPair);
         }
+
+        filterSize = currentNumber; // Increase filter size to the size of the next prime number
     }
 
     /**
