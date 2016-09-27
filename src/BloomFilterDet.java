@@ -1,16 +1,15 @@
-import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.BitSet;
 
 public class BloomFilterDet {
     private int bitsPerElement;
-    private int setSize;
     private int numHashes;
     private int filterSize;
+    private int nextPrime;
     private int numOfData;
     private BitSet filter;
-    private final BigInteger FNV_64INIT = new BigInteger("14695981039346656037");
-    private final BigInteger FNV64PRIME = new BigInteger("109951168211");
-    private final BigInteger twoPow64 = new BigInteger("2").pow(64);
+    private final long FNV_64INIT = Long.parseUnsignedLong("14695981039346656037");
+    private final long FNV64PRIME = Long.parseUnsignedLong("109951168211");
 
 
     /**
@@ -21,9 +20,9 @@ public class BloomFilterDet {
      */
     public BloomFilterDet(int setSize, int bitsPerElement) {
         this.bitsPerElement = bitsPerElement;
-        this.setSize = setSize;
         filterSize = setSize * bitsPerElement;
         filter = new BitSet(filterSize);
+        setNextPrime(filterSize);
         this.numHashes = (int) Math.ceil(Math.log(2) * bitsPerElement);
     }
 
@@ -34,26 +33,18 @@ public class BloomFilterDet {
      */
     public void add(String s) {
         s = s.toLowerCase();
-        BigInteger hashVal = fnv64(s);
-        BigInteger a = hashVal;
-        BigInteger b = hashVal;
+        long hashVal = fnv64(s);
+        int a = (int)hashVal;
+        int b = (int)(hashVal >> 32);
 
-        for (int i = 0; i < numHashes; i++) {
-            for(int j = 0; j < b.bitLength()/2; j++){
-                b = b.clearBit(j);
-            }
-            for(int j = a.bitLength()/2; j < a.bitLength(); j++){
-                a = a.clearBit(j);
-            }
+        for(int i = 0; i < numHashes; i++){
+            int idx = (a + b * i) % nextPrime;
+            if(idx < 0)
+                idx = Math.abs(Integer.MIN_VALUE) - Math.abs(idx);
 
-            BigInteger idx = a.add(b).multiply(new BigInteger(String.valueOf(i)));
-            int pos = idx.mod(new BigInteger(String.valueOf(filterSize))).intValue();
-
-            if (pos < 0) {
-                pos = Math.abs(Integer.MIN_VALUE) - Math.abs(pos);
-            }
-            filter.set(pos);
+            filter.set(idx);
         }
+
         numOfData++;
     }
 
@@ -65,28 +56,19 @@ public class BloomFilterDet {
      */
     public boolean appears(String s) {
         s = s.toLowerCase();
-        BigInteger hashVal = fnv64(s);
-        BigInteger a = hashVal;
-        BigInteger b = hashVal;
+        long hashVal = fnv64(s);
+        int a = (int)hashVal;
+        int b = (int)(hashVal >> 32);
 
-        for (int i = 0; i < numHashes; i++) {
-            for(int j = 0; j < b.bitLength()/2; j++){
-                b = b.clearBit(j);
-            }
-            for(int j = a.bitLength()/2; j < a.bitLength(); j++){
-                a = a.clearBit(j);
-            }
+        for(int i = 0; i < numHashes; i++){
+            int idx = (a + b * i) % nextPrime;
+            if(idx < 0)
+                idx = Math.abs(Integer.MIN_VALUE) - Math.abs(idx);
 
-            BigInteger idx = a.add(b).multiply(new BigInteger(String.valueOf(i)));
-            int pos = idx.mod(new BigInteger(String.valueOf(filterSize))).intValue();
-
-            if (pos < 0) {
-                pos = Math.abs(Integer.MIN_VALUE) - Math.abs(pos);
-            }
-
-            if (!filter.get(pos))
+            if(!filter.get(idx))
                 return false;
         }
+
         return true;
     }
 
@@ -124,15 +106,28 @@ public class BloomFilterDet {
      * @param s
      * @return
      */
-    private BigInteger fnv64(String s) {
-        BigInteger h = FNV_64INIT;
+    private long fnv64(String s) {
+        long h = FNV_64INIT;
 
         for (int i = 0; i < s.length(); i++) {
-            h = h.xor(new BigInteger(Integer.toBinaryString(s.charAt(i))));
-            h = h.multiply(FNV64PRIME).mod(twoPow64);
+            h = h ^ s.charAt(i);
+            h = h * FNV64PRIME;
         }
 
         return h;
+    }
+
+    private byte[] longToBytes(long x) {
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(x);
+        return buffer.array();
+    }
+
+    private long bytesToLong(byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.put(bytes);
+        buffer.flip();//need flip
+        return buffer.getLong();
     }
 
     /**
@@ -144,20 +139,53 @@ public class BloomFilterDet {
         return Math.pow(0.618, bitsPerElement);
     }
 
+    /**
+     * Determine whether or not a number is prime
+     * @param n number
+     * @return if n is prime
+     */
+    private boolean isPrimeNumber(int n){
+        double num = (double) n;
+
+        for(int i = 2; i < Math.sqrt(num); i++) {
+            double result = num / i;
+
+            if ( result == Math.floor(result) ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Set the next prime number based on the filter size
+     * @param n
+     */
+    private void setNextPrime(int n){
+        if(isPrimeNumber(filterSize))
+            nextPrime = filterSize;
+
+        while(!isPrimeNumber(n))
+            n++;
+
+        nextPrime = n;
+    }
+
     public void print() {
         System.out.println(filter);
     }
 
     public static void main(String[] args) {
-        BloomFilterDet det = new BloomFilterDet(500, 4);
+        BloomFilterDet det = new BloomFilterDet(5000, 4);
         long start = System.currentTimeMillis();
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 5000; i++) {
             det.add("test" + i);
         }
 
         System.out.println(det.appears("test1"));
         System.out.println(det.appears("test2"));
-        System.out.println(det.appears("testt"));
+        System.out.println(det.appears("test"));
 
         long end = System.currentTimeMillis();
         System.out.println("Runtime: " + (end - start));
