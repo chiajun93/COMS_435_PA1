@@ -5,47 +5,32 @@ public class FalsePositive {
     private BloomFilterDet bloomFilterDet;
     private BloomFilterRan bloomFilterRan;
     private HashSet<String> dict;
-    private int falseCount;
+    private int falseCountDet;
+    private int falseCountRan;
     private int numTests;
     private static final String LETTERS = "abcdefghijklmnopqrstuvwxyz0123456789";
 
     /**
      * Constructor for calculating the false positive in bloom filter det with a given number of tests
      *
-     * @param bloomFilterDet
+     * @param setSize
+     * @param bitsPerElement
      * @param numTests
      */
-    public FalsePositive(BloomFilterDet bloomFilterDet, int numTests) {
-        this.bloomFilterDet = bloomFilterDet;
+    public FalsePositive(int setSize, int bitsPerElement, int numTests) {
+        bloomFilterDet = new BloomFilterDet(setSize, bitsPerElement);
+        bloomFilterRan = new BloomFilterRan(setSize, bitsPerElement);
         dict = new HashSet<>();
-        falseCount = 0;
+        falseCountDet = 0;
+        falseCountRan = 0;
         this.numTests = numTests;
 
-        for (int i = 0; i < bloomFilterDet.filterSize(); i++) {
+        for (int i = 0; i < numTests; i++) {
             String s = genStrings();
-            if (i <= numTests)
+            if (i < numTests / 2){
                 bloomFilterDet.add(s);
-            else
-                dict.add(s);
-        }
-    }
-
-    /**
-     * Constructor for calculating the false positive in bloom filter random with a given number of tests
-     *
-     * @param bloomFilterRan
-     * @param numTests
-     */
-    public FalsePositive(BloomFilterRan bloomFilterRan, int numTests) {
-        this.bloomFilterRan = bloomFilterRan;
-        dict = new HashSet<>();
-        falseCount = 0;
-        this.numTests = numTests;
-
-        for (int i = 0; i < bloomFilterRan.filterSize(); i++) {
-            String s = genStrings();
-            if (i <= numTests)
                 bloomFilterRan.add(s);
+            }
             else
                 dict.add(s);
         }
@@ -69,35 +54,33 @@ public class FalsePositive {
     }
 
     /**
-     * Return the false positive rate by dividing the occurrences of strings which do not not appear in dict in bloom filter det
+     * Prints the false positive rates of BloomFilterDet and BloomFilterRan by dividing the occurrences of strings which do not not appear in dict in bloom filters
      *
      * @return false positive rate
      */
-    public double getFalsePositive() {
-        StringBuilder sb = new StringBuilder();
+    public void getFalsePositive() {
         for (String s : dict) {
             if (bloomFilterDet.appears(s)) {
-                sb.append(s);
-                sb.append(", ");
-                falseCount++;
+                falseCountDet++;
+            }
+            if (bloomFilterRan.appears(s)) {
+                falseCountRan++;
             }
         }
-        System.out.println(sb.toString());
-        System.out.println("False count: " + falseCount);
+
+        System.out.println("False count in BloomFilterDet: " + falseCountDet);
+        System.out.println("False count in BloomFilterRan: " + falseCountRan);
+        System.out.println("False positive of BloomFilterDet: " + (double) falseCountDet / dict.size());
+        System.out.println("False positive of BloomFilterRan: " + (double) falseCountRan / dict.size());
         System.out.println("Dict size: " + dict.size());
-
-        return (double) falseCount / dict.size();
     }
-
 
     public static void main(String[] args) {
         BloomFilterDet det = new BloomFilterDet(30000, 4);
-        BloomFilterRan ran = new BloomFilterRan(3000, 4);
 
-        FalsePositive fp = new FalsePositive(det, 25000);
-//        det.print();
-        System.out.println("False positive: " + fp.getFalsePositive());
-        System.out.println("Optimal False positive: " + det.getOptFalsePositive());
+        FalsePositive fp = new FalsePositive(30000, 4, 20000);
+        fp.getFalsePositive();
+        System.out.println("Optimal false positive of BloomFilterDet: " + det.getOptFalsePositive());
     }
 
 }
