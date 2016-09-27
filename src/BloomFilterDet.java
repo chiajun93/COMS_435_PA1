@@ -8,8 +8,8 @@ public class BloomFilterDet {
     private int filterSize;
     private int numOfData;
     private BitSet filter;
-    private static BigInteger FNV_64INIT = new BigInteger("14695981039346656037");
-    private static BigInteger FNV64PRIME = new BigInteger("109951168211");
+    private final BigInteger FNV_64INIT = new BigInteger("14695981039346656037");
+    private final BigInteger FNV64PRIME = new BigInteger("109951168211");
     private final BigInteger twoPow64 = new BigInteger("2").pow(64);
 
 
@@ -23,7 +23,7 @@ public class BloomFilterDet {
         this.bitsPerElement = bitsPerElement;
         this.setSize = setSize;
         filterSize = setSize * bitsPerElement;
-        filter = new BitSet(setSize);
+        filter = new BitSet(filterSize);
         this.numHashes = (int) Math.ceil(Math.log(2) * bitsPerElement);
     }
 
@@ -34,19 +34,25 @@ public class BloomFilterDet {
      */
     public void add(String s) {
         s = s.toLowerCase();
-        long hashVal = fnv64(s);
+        BigInteger hashVal = fnv64(s);
+        BigInteger a = hashVal;
+        BigInteger b = hashVal;
 
         for (int i = 0; i < numHashes; i++) {
-            int a = (int) hashVal;
-            int b = (int) (hashVal >> 32);
-            int idx = a + b * i;
-            if (idx < 0) {
-                idx = Math.abs(Integer.MIN_VALUE) - Math.abs(idx);
+            for(int j = 0; j < b.bitLength()/2; j++){
+                b = b.clearBit(j);
+            }
+            for(int j = a.bitLength()/2; j < a.bitLength(); j++){
+                a = a.clearBit(j);
             }
 
-            idx = idx % filterSize;
+            BigInteger idx = a.add(b).multiply(new BigInteger(String.valueOf(i)));
+            int pos = idx.mod(new BigInteger(String.valueOf(filterSize))).intValue();
 
-            filter.set(idx);
+            if (pos < 0) {
+                pos = Math.abs(Integer.MIN_VALUE) - Math.abs(pos);
+            }
+            filter.set(pos);
         }
         numOfData++;
     }
@@ -59,21 +65,27 @@ public class BloomFilterDet {
      */
     public boolean appears(String s) {
         s = s.toLowerCase();
-        long hashVal = fnv64(s);
+        BigInteger hashVal = fnv64(s);
+        BigInteger a = hashVal;
+        BigInteger b = hashVal;
 
         for (int i = 0; i < numHashes; i++) {
-            int a = (int) hashVal;
-            int b = (int) (hashVal >> 32);
-            int idx = a + b * i;
-            if (idx < 0) {
-                idx = Math.abs(Integer.MIN_VALUE) - Math.abs(idx);
+            for(int j = 0; j < b.bitLength()/2; j++){
+                b = b.clearBit(j);
+            }
+            for(int j = a.bitLength()/2; j < a.bitLength(); j++){
+                a = a.clearBit(j);
             }
 
-            idx = idx % filterSize;
+            BigInteger idx = a.add(b).multiply(new BigInteger(String.valueOf(i)));
+            int pos = idx.mod(new BigInteger(String.valueOf(filterSize))).intValue();
 
-            if (!filter.get(idx)) {
+            if (pos < 0) {
+                pos = Math.abs(Integer.MIN_VALUE) - Math.abs(pos);
+            }
+
+            if (!filter.get(pos))
                 return false;
-            }
         }
         return true;
     }
@@ -84,7 +96,7 @@ public class BloomFilterDet {
      * @return
      */
     public int filterSize() {
-        return filter.cardinality();
+        return filterSize;
     }
 
 
@@ -112,7 +124,7 @@ public class BloomFilterDet {
      * @param s
      * @return
      */
-    private long fnv64(String s) {
+    private BigInteger fnv64(String s) {
         BigInteger h = FNV_64INIT;
 
         for (int i = 0; i < s.length(); i++) {
@@ -120,7 +132,7 @@ public class BloomFilterDet {
             h = h.multiply(FNV64PRIME).mod(twoPow64);
         }
 
-        return h.longValue();
+        return h;
     }
 
     /**
@@ -144,6 +156,8 @@ public class BloomFilterDet {
         }
 
         System.out.println(det.appears("test1"));
+        System.out.println(det.appears("test2"));
+        System.out.println(det.appears("testt"));
 
         long end = System.currentTimeMillis();
         System.out.println("Runtime: " + (end - start));
