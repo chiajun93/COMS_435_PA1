@@ -123,16 +123,14 @@ public class BloomFilterDet {
         return h.longValue();
     }
 
-//    private long fnv64NoBig(String s) {
-//        long h = 0xcbf29ce484222325L;
-//
-//        for (int i = 0; i < s.length(); i++) {
-//            h ^= s.charAt(i);
-//            h = (h * 0x100000001b3L) ;
-//        }
-//
-//        return h;
-//    }
+    /**
+     * Returns the optimal values for the false positive rate
+     *
+     * @return false positive
+     */
+    public double getOptFalsePositive() {
+        return Math.pow(0.618, bitsPerElement);
+    }
 
     public void print() {
         System.out.println(filter);
