@@ -31,6 +31,10 @@ public class Differential {
         this.differentialType = type;
     }
 
+    Differential(){
+
+    }
+
     /**
      * Parse the different file into a bloom filter
      * @return
@@ -67,7 +71,7 @@ public class Differential {
      * @param key The key to the desired record
      * @return The record if it can be found, else an empty string
      */
-    public String retrieveRecord(String key){
+    protected String retrieveRecord(String key){
         String record;
 
         // Hit the differential file if: We're in naive mode OR the bloom filter contains the key OR the bloom filter doesn't exist
@@ -139,7 +143,7 @@ public class Differential {
      * @param line
      * @return
      */
-    private static String getKeyFromLine(String line){
+    protected static String getKeyFromLine(String line){
         String[] words = line.split(" ");
         String firstInt = "";
 
