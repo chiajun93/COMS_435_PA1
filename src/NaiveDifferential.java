@@ -7,46 +7,65 @@ import java.util.Scanner;
  * Created by chiajun on 9/26/16.
  */
 public class NaiveDifferential extends Differential {
-    private HashSet<String> dict;
+    private HashSet<String> diffData;
+    private HashSet<String> database;
 
     /**
      * Constructor for a naive differential application
      */
     public NaiveDifferential() {
-        createDiffData();
+        createData("DiffFile.txt");
+        createData("database.txt");
     }
 
-    private void createDiffData() {
-        File diffFile = new File("DiffFile.txt");
+    private void createData(String filepath) {
+        File inFile = new File(filepath);
 
         try {
-            Scanner scan = new Scanner(diffFile);
-            dict = new HashSet<>();
+            Scanner scan = new Scanner(inFile);
+            String line;
+            String keys;
+            if(filepath.contains("DiffFile.txt")){
+                diffData = new HashSet<>();
 
-            while (scan.hasNextLine()) {
-                String line = scan.nextLine();
-                String keys = getKeyFromLine(line);
-                dict.add(keys);
+                while (scan.hasNextLine()) {
+                    line = scan.nextLine();
+                    keys = getKeyFromLine(line);
+                    diffData.add(keys);
+                }
+            }
+            else {
+                database = new HashSet<>();
+
+                while (scan.hasNextLine()) {
+                    line = scan.nextLine();
+                    keys = getKeyFromLine(line);
+                    database.add(keys);
+                }
             }
 
         } catch (FileNotFoundException e) {
-            System.out.println("Invalid file path.");
+            e.printStackTrace();
         }
     }
 
     @Override
     protected String retrieveRecord(String key) {
         String record = "";
-        if (!dict.contains(key)) {
+        if (!diffData.contains(key)) {
             System.out.println("Records in not found in differential file. Looking at database now...");
 
+            if(database.contains(key))
+                System.out.println("Found the key in database.");
+            else
+                System.out.println("Key does not exist in both database and differential file.");
         }
 
         return record;
     }
 
-    public HashSet<String> getDict() {
-        return dict;
+    public HashSet<String> getDiffData() {
+        return diffData;
     }
 
     public static void main(String[] args) {
