@@ -1,11 +1,9 @@
 import java.util.HashSet;
 import java.util.Random;
 
-/**
- * Created by chiajun on 9/25/16.
- */
 public class FalsePositive {
     private BloomFilterDet bloomFilterDet;
+    private BloomFilterRan bloomFilterRan;
     private HashSet<String> dict;
     private int falseCount;
     private int numTests;
@@ -23,17 +21,40 @@ public class FalsePositive {
         falseCount = 0;
         this.numTests = numTests;
 
-        for (int i = 0; i < numTests; i++) {
+        for (int i = 0; i < bloomFilterDet.filterSize(); i++) {
             String s = genStrings();
-            bloomFilterDet.add(s);
-            dict.add(s);
+            if (i <= numTests)
+                bloomFilterDet.add(s);
+            else
+                dict.add(s);
+        }
+    }
+
+    /**
+     * Constructor for calculating the false positive in bloom filter random with a given number of tests
+     *
+     * @param bloomFilterRan
+     * @param numTests
+     */
+    public FalsePositive(BloomFilterRan bloomFilterRan, int numTests) {
+        this.bloomFilterRan = bloomFilterRan;
+        dict = new HashSet<>();
+        falseCount = 0;
+        this.numTests = numTests;
+
+        for (int i = 0; i < bloomFilterRan.filterSize(); i++) {
+            String s = genStrings();
+            if (i <= numTests)
+                bloomFilterRan.add(s);
+            else
+                dict.add(s);
         }
     }
 
     /**
      * Randomly generate a string with the fixed length
      *
-     * @return
+     * @return generated string
      */
     private String genStrings() {
         Random rand = new Random();
@@ -53,29 +74,30 @@ public class FalsePositive {
      * @return false positive rate
      */
     public double getFalsePositive() {
-        int falseData = 0;
-
-        for (int i = 0; i < numTests; i++) {
-            String s = genStrings();
-
-            if (!dict.contains(s)) {
-                falseData++;
-
-                if (bloomFilterDet.appears(s))
-                    falseCount++;
+        StringBuilder sb = new StringBuilder();
+        for (String s : dict) {
+            if (bloomFilterDet.appears(s)) {
+                sb.append(s);
+                sb.append(", ");
+                falseCount++;
             }
         }
+        System.out.println(sb.toString());
+        System.out.println("False count: " + falseCount);
+        System.out.println("Dict size: " + dict.size());
 
-        return (double) falseCount / falseData;
+        return (double) falseCount / dict.size();
     }
-    
-    public int getFalseCount() {
-        return falseCount;
-    }
+
 
     public static void main(String[] args) {
-        FalsePositive fp = new FalsePositive(new BloomFilterDet(3000, 4), 3000);
-        System.out.println("False count: " + fp.getFalseCount() + "\nFalse positive: " + fp.getFalsePositive());
+        BloomFilterDet det = new BloomFilterDet(30000, 4);
+        BloomFilterRan ran = new BloomFilterRan(3000, 4);
+
+        FalsePositive fp = new FalsePositive(det, 25000);
+//        det.print();
+        System.out.println("False positive: " + fp.getFalsePositive());
+        System.out.println("Optimal False positive: " + det.getOptFalsePositive());
     }
 
 }
