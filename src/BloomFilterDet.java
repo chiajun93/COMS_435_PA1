@@ -117,28 +117,6 @@ public class BloomFilterDet {
         return h;
     }
 
-    private byte[] longToBytes(long x) {
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.putLong(x);
-        return buffer.array();
-    }
-
-    private long bytesToLong(byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.put(bytes);
-        buffer.flip();//need flip
-        return buffer.getLong();
-    }
-
-    /**
-     * Returns the optimal values for the false positive rate
-     *
-     * @return false positive
-     */
-    public double getOptFalsePositive() {
-        return Math.pow(0.618, bitsPerElement);
-    }
-
     /**
      * Determine whether or not a number is prime
      * @param n number
@@ -172,10 +150,10 @@ public class BloomFilterDet {
         nextPrime = n;
     }
 
-    public void print() {
-        System.out.println(filter);
-    }
-
+    /**
+     * Main program to execute the program
+     * @param args
+     */
     public static void main(String[] args) {
         BloomFilterDet det = new BloomFilterDet(5000, 4);
         long start = System.currentTimeMillis();
@@ -189,7 +167,5 @@ public class BloomFilterDet {
 
         long end = System.currentTimeMillis();
         System.out.println("Runtime: " + (end - start));
-
-        det.print();
     }
 }

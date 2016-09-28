@@ -7,7 +7,7 @@ public class FalsePositive {
     private HashSet<String> dict;
     private int falseCountDet;
     private int falseCountRan;
-    private int numTests;
+    private int bitsPerElement;
     private static final String LETTERS = "abcdefghijklmnopqrstuvwxyz0123456789";
 
     /**
@@ -23,7 +23,7 @@ public class FalsePositive {
         dict = new HashSet<>();
         falseCountDet = 0;
         falseCountRan = 0;
-        this.numTests = numTests;
+        this.bitsPerElement = bitsPerElement;
 
         for (int i = 0; i < numTests; i++) {
             String s = genStrings();
@@ -54,6 +54,15 @@ public class FalsePositive {
     }
 
     /**
+     * Returns the optimal values for the false positive rate
+     *
+     * @return false positive
+     */
+    public double getOptFalsePositive() {
+        return Math.pow(0.618, bitsPerElement);
+    }
+
+    /**
      * Prints the false positive rates of BloomFilterDet and BloomFilterRan by dividing the occurrences of strings which do not not appear in dict in bloom filters
      *
      * @return false positive rate
@@ -76,11 +85,9 @@ public class FalsePositive {
     }
 
     public static void main(String[] args) {
-        BloomFilterDet det = new BloomFilterDet(30000, 4);
-
-        FalsePositive fp = new FalsePositive(30000, 4, 20000);
+        FalsePositive fp = new FalsePositive(30000, 4, 120000);
         fp.getFalsePositive();
-        System.out.println("Optimal false positive of BloomFilterDet: " + det.getOptFalsePositive());
+        System.out.println("Optimal false positive of BloomFilterDet: " + fp.getOptFalsePositive());
     }
 
 }

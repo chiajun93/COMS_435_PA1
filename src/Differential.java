@@ -38,6 +38,8 @@ public class Differential {
         startTimer();
     }
 
+    public Differential(){}
+
     /**
      * Start the timer for empirical performance comparison
      */
@@ -176,7 +178,7 @@ public class Differential {
      * @param line
      * @return
      */
-    private static String getKeyFromLine(String line){
+    protected static String getKeyFromLine(String line){
         String[] words = line.split(" ");
         String firstInt = "";
 

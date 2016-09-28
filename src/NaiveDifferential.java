@@ -49,8 +49,7 @@ public class NaiveDifferential extends Differential {
         }
     }
 
-    @Override
-    protected String retrieveRecord(String key) {
+    public String retrieveRecord(String key) {
         String record = "";
         if (!diffData.contains(key)) {
             System.out.println("Records in not found in differential file. Looking at database now...");
