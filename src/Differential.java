@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * Implementation of both a naive and bloom differential.
@@ -17,10 +18,13 @@ public class Differential {
     public static final String NAIVE = "naive";
     public static final String BLOOM = "bloom";
 
-    private static boolean DEBUG = true;
+    private static boolean DEBUG = false;
 
     // Bloom filter, if applicable
-    private BloomFilterRan bloomFilter = null;
+    public BloomFilterRan bloomFilter = null;
+
+    // Run time stats
+    DifferentialRuntimeStats differentialRuntimeStats;
 
     /**
      *  Use a bloom filter for differential references
@@ -29,10 +33,24 @@ public class Differential {
         this.databaseFilePath = databaseFilePath;
         this.differentialFilePath = differentialFilePath;
         this.differentialType = type;
+
+        differentialRuntimeStats = new DifferentialRuntimeStats();
+        startTimer();
     }
 
-    Differential(){
+    /**
+     * Start the timer for empirical performance comparison
+     */
+    public void startTimer(){
+        differentialRuntimeStats.startTime = new Date();
+    }
 
+    /**
+     * Stop the empirical performance comparison timer
+     */
+    public void endTimer(){
+        differentialRuntimeStats.endTime = new Date();
+        differentialRuntimeStats.runTime = differentialRuntimeStats.endTime.getTime() - differentialRuntimeStats.startTime.getTime();
     }
 
     /**
@@ -50,7 +68,10 @@ public class Differential {
             String currentLine;
 
             // Read each key into our arraylist.. TODO: How can we know the bloomFilter setSize without doing this?
-            while ( (currentLine = bufferedReader.readLine()) != null ) keys.add(getKeyFromLine(currentLine));
+            while ( (currentLine = bufferedReader.readLine()) != null ) {
+                keys.add(getKeyFromLine(currentLine));
+                differentialRuntimeStats.linesRead++;
+            }
 
             // Create our bloomfilter, store our keys
             bloomFilter = new BloomFilterRan(keys.size(), 8);
@@ -60,6 +81,8 @@ public class Differential {
             System.out.println(e.getLocalizedMessage());
             System.out.println("Failed to read differential file");
         }
+
+        if ( DEBUG ) System.out.println("Bloom Filter Created.");
 
         return bloomFilter;
     }
@@ -71,7 +94,7 @@ public class Differential {
      * @param key The key to the desired record
      * @return The record if it can be found, else an empty string
      */
-    protected String retrieveRecord(String key){
+    public String retrieveRecord(String key){
         String record;
 
         // Hit the differential file if: We're in naive mode OR the bloom filter contains the key OR the bloom filter doesn't exist
@@ -79,18 +102,26 @@ public class Differential {
                 differentialType.equals(NAIVE)) {
 
             if ( DEBUG && differentialType.equals(BLOOM) && bloomFilter.appears(key)) System.out.println(key + " was found in bloom filter.");
-            if ( DEBUG ) System.out.println("Querying differential.");
+            if ( DEBUG ) System.out.println("Querying differential file.");
 
 
             record = getRecordFromFile(key, differentialFilePath);
 
             if ( !record.equals("") ) {
-                if ( DEBUG ) System.out.println("Found in differential.");
+                if ( DEBUG ) System.out.println("Found in differential file.");
                 return record;
             }
         }
 
-        System.out.println("Not found in differential.");
+        if ( DEBUG ) {
+            if ( differentialType.equals(BLOOM) && !bloomFilter.appears(key) ) {
+                System.out.println(key + " was not found in the bloom filter");
+            } else {
+                System.out.println("Not found in differential file.");
+            }
+
+            System.out.println("Querying database file.");
+        }
 
         record = getRecordFromFile(key, databaseFilePath);
 
@@ -124,7 +155,7 @@ public class Differential {
 
                 if ( keyForLine.equals(key) ) return currentLine;
 
-                if ( lineCount % 1000000 == 0 && DEBUG ) System.out.println("Read DB line: " + ((lineCount / 1000000) + 1) + " million");
+                if ( lineCount % 1000000 == 0 && DEBUG ) System.out.println("Read line: " + ((lineCount / 1000000) + 1) + " million");
 
                 lineCount++;
             }
@@ -133,6 +164,8 @@ public class Differential {
             System.out.println(e.getLocalizedMessage());
             System.out.println("Failed to read file: " + filePath);
         }
+
+        differentialRuntimeStats.linesRead += lineCount;
 
         return result;
     }
@@ -143,7 +176,7 @@ public class Differential {
      * @param line
      * @return
      */
-    protected static String getKeyFromLine(String line){
+    private static String getKeyFromLine(String line){
         String[] words = line.split(" ");
         String firstInt = "";
 
@@ -156,7 +189,19 @@ public class Differential {
             } catch ( NumberFormatException e) {}
         }
 
-        return line.substring(0, line.indexOf(firstInt)); // Remove last space
+        return line.substring(0, line.indexOf(firstInt)).trim(); // Remove last space
+    }
+
+    class DifferentialRuntimeStats {
+        public int linesRead;
+        public Date startTime;
+        public Date endTime;
+        public long runTime;
+
+        DifferentialRuntimeStats(){
+            linesRead = 0;
+            runTime = 0;
+        }
     }
 
     /**

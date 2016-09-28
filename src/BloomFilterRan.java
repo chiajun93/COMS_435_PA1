@@ -9,7 +9,7 @@ import java.util.BitSet;
 public class BloomFilterRan {
 
     // Arraylist containing K hash values
-    private ArrayList<Pair<Pair<Integer, Integer>, Integer>> randomHashValues;
+    private ArrayList<Pair<Integer, Integer>> randomHashValues;
 
     // Bloom filter implementation
     private BitSet filterTable;
@@ -42,17 +42,16 @@ public class BloomFilterRan {
     public void add(String string){
         string = string.toLowerCase();
 
-        for ( Pair<Pair<Integer, Integer>, Integer> abpPair : randomHashValues ) {
-            int a = abpPair.getKey().getKey();
-            int b = abpPair.getKey().getValue();
-            int p = abpPair.getValue();
+        for ( Pair<Integer, Integer> abPair : randomHashValues ) {
+            int a = abPair.getKey();
+            int b = abPair.getValue();
 
             int hashIndex = ((a * string.hashCode()) + b);
 
             // Account for overflow
             if ( hashIndex < 0 ) hashIndex = Math.abs(Integer.MIN_VALUE) - Math.abs(hashIndex);
 
-            hashIndex = hashIndex % p;
+            hashIndex = hashIndex % filterSize;
 
             filterTable.set(hashIndex);
         }
@@ -71,17 +70,16 @@ public class BloomFilterRan {
         string = string.toLowerCase();
 
         // Compute each hash, check if bit is set
-        for ( Pair<Pair<Integer, Integer>, Integer> abpPair : randomHashValues ) {
-            int a = abpPair.getKey().getKey();
-            int b = abpPair.getKey().getValue();
-            int p = abpPair.getValue();
+        for ( Pair<Integer, Integer> abPair : randomHashValues ) {
+            int a = abPair.getKey();
+            int b = abPair.getValue();
 
             int hashIndex = ((a * string.hashCode()) + b);
 
             // Account for overflow
             if ( hashIndex < 0 ) hashIndex = Math.abs(Integer.MIN_VALUE) - Math.abs(hashIndex);
 
-            hashIndex = hashIndex % p;
+            hashIndex = hashIndex % filterSize;
 
             // If the bit is ever not set, then we return false
             if ( !filterTable.get(hashIndex) ) return false;
@@ -148,10 +146,7 @@ public class BloomFilterRan {
             int a = (int) (Math.random() * (currentNumber - 1));
             int b = (int) (Math.random() * (currentNumber - 1));
 
-            Pair<Integer, Integer> abPair = new Pair<>(a, b);
-            Pair<Pair<Integer, Integer>, Integer> abpPair = new Pair<>(abPair, currentNumber);
-
-            randomHashValues.add(abpPair);
+            randomHashValues.add(new Pair<>(a, b));
         }
 
         filterSize = currentNumber; // Increase filter size to the size of the next prime number

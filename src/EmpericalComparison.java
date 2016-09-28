@@ -1,5 +1,5 @@
 /**
- * Created by paulgerlich on 9/26/16.
+ * Empirical comparison class for comparing bloom and niava differential implementations
  */
 public class EmpericalComparison {
 
@@ -19,14 +19,60 @@ public class EmpericalComparison {
     }
 
 
+    /**
+     * Run the same lookups on both differentials comparing the runtime
+     */
     public void compare(){
         System.out.println("Comparing BLOOM && NAIVE Differentials");
 
-        // TODO: Run on some stuff
+        String keyOneInDifFile = "ARTICLE_DET 1_NUM Section_NOUN 1_NUM";
+        String keyTwoInDifFile = "are_VERB entered_VERB on_ADP cards_NOUN";
+        String keyThreeInDifFile = "are the external appearances";
+        String keyFourInDifFile = "are_VERB written_VERB up_PRT ,_.";
+        String keyInDatabase = "ARCHBISHOP_NOUN LEIGHTON_NOUN ._. _END_";
+        String keyInNeither = "Marty McFly";
 
-        System.out.println("Line Reads");
-        System.out.println("Time Reads");
-        System.out.println("Memory");
+        // Bloom differential
+        System.out.println("Bloom Differential:");
+        bloomDifferential.createFilter();
+        System.out.println(bloomDifferential.retrieveRecord(keyOneInDifFile));
+        System.out.println(bloomDifferential.retrieveRecord(keyTwoInDifFile));
+        System.out.println(bloomDifferential.retrieveRecord(keyThreeInDifFile));
+        System.out.println(bloomDifferential.retrieveRecord(keyFourInDifFile));
+        System.out.println(bloomDifferential.retrieveRecord(keyInDatabase));
+        System.out.println(bloomDifferential.retrieveRecord(keyInNeither));
+        bloomDifferential.endTimer();
+
+        // Naive differential
+        System.out.println("Niave Differential:");
+        System.out.println(niaveDifferential.retrieveRecord(keyOneInDifFile));
+        System.out.println(niaveDifferential.retrieveRecord(keyTwoInDifFile));
+        System.out.println(niaveDifferential.retrieveRecord(keyThreeInDifFile));
+        System.out.println(niaveDifferential.retrieveRecord(keyFourInDifFile));
+        System.out.println(niaveDifferential.retrieveRecord(keyInDatabase));
+        System.out.println(niaveDifferential.retrieveRecord(keyInNeither));
+        niaveDifferential.endTimer();
+
+        System.out.println("BloomDifferential:");
+        System.out.println("Lines Read: " + bloomDifferential.differentialRuntimeStats.linesRead);
+        System.out.println("Run time: " + (bloomDifferential.differentialRuntimeStats.runTime / 1000) + " seconds");
+        System.out.println("Memory used: " + (((double)bloomDifferential.bloomFilter.filterSize()) / 8000000) + " mb");
+
+        System.out.println("");
+
+        System.out.println("NiaveDifferential:");
+        System.out.println("Lines Read: " + niaveDifferential.differentialRuntimeStats.linesRead);
+        System.out.println("Run time: " + (niaveDifferential.differentialRuntimeStats.runTime / 1000) + " seconds");
+        System.out.println("Memory Used: Constant (negligible)");
+
+        System.out.println("");
+
+        String fewestLinesReadDifferential = bloomDifferential.differentialRuntimeStats.linesRead < niaveDifferential.differentialRuntimeStats.linesRead ? "Bloom" : "Naive";
+        String fastestDifferential = bloomDifferential.differentialRuntimeStats.runTime < niaveDifferential.differentialRuntimeStats.runTime ? "Bloom" : "Naive";
+
+        System.out.println("Fewest Lines Read: " + fewestLinesReadDifferential + "Differential");
+        System.out.println("Fastest run time: " + fastestDifferential + "Differential");
+        System.out.println("Least Memory: Naive");
     }
 
     public static void main(String[] args){
