@@ -1,5 +1,7 @@
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.HashSet;
-import java.util.Random;
+import java.util.Scanner;
 
 public class FalsePositive {
     private BloomFilterDet bloomFilterDet;
@@ -8,7 +10,6 @@ public class FalsePositive {
     private int falseCountDet;
     private int falseCountRan;
     private int bitsPerElement;
-    private static final String LETTERS = "abcdefghijklmnopqrstuvwxyz0123456789";
 
     /**
      * Constructor for calculating the false positive in bloom filter det with a given number of tests
@@ -25,32 +26,21 @@ public class FalsePositive {
         falseCountRan = 0;
         this.bitsPerElement = bitsPerElement;
 
-        for (int i = 0; i < numTests; i++) {
-            String s = genStrings();
-            if (i < numTests / 2){
-                bloomFilterDet.add(s);
-                bloomFilterRan.add(s);
+        File file = new File("grams.txt");
+        try{
+            Scanner scan = new Scanner(file);
+            for (int i = 0; i < numTests; i++) {
+                String s = scan.nextLine();
+                if (i < numTests / 2){
+                    bloomFilterDet.add(s);
+                    bloomFilterRan.add(s);
+                }
+                else
+                    dict.add(s);
             }
-            else
-                dict.add(s);
+        } catch(FileNotFoundException e){
+            e.printStackTrace();
         }
-    }
-
-    /**
-     * Randomly generate a string with the fixed length
-     *
-     * @return generated string
-     */
-    private String genStrings() {
-        Random rand = new Random();
-        StringBuilder sb = new StringBuilder(6);
-
-        for (int i = 0; i < 6; i++) {
-            int ith = rand.nextInt(LETTERS.length());
-            sb.append(LETTERS.charAt(ith));
-        }
-
-        return sb.toString();
     }
 
     /**
@@ -85,9 +75,8 @@ public class FalsePositive {
     }
 
     public static void main(String[] args) {
-        FalsePositive fp = new FalsePositive(30000, 4, 120000);
+        FalsePositive fp = new FalsePositive(10000, 4, 40000);
         fp.getFalsePositive();
         System.out.println("Optimal false positive of BloomFilterDet: " + fp.getOptFalsePositive());
     }
-
 }

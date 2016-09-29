@@ -1,4 +1,3 @@
-import java.nio.ByteBuffer;
 import java.util.BitSet;
 
 public class BloomFilterDet {

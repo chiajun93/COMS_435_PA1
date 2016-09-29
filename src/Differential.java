@@ -21,7 +21,7 @@ public class Differential {
     private static boolean DEBUG = false;
 
     // Bloom filter, if applicable
-    public BloomFilterRan bloomFilter = null;
+    public BloomFilterDet bloomFilter = null;
 
     // Run time stats
     DifferentialRuntimeStats differentialRuntimeStats;
@@ -59,7 +59,7 @@ public class Differential {
      * Parse the different file into a bloom filter
      * @return
      */
-    public BloomFilterRan createFilter(){
+    public BloomFilterDet createFilter(){
         if ( this.differentialType.equals(NAIVE) ) return null;
 
         try {
@@ -76,7 +76,7 @@ public class Differential {
             }
 
             // Create our bloomfilter, store our keys
-            bloomFilter = new BloomFilterRan(keys.size(), 8);
+            bloomFilter = new BloomFilterDet(keys.size(), 8);
 
             for ( String key : keys ) bloomFilter.add(key);
         } catch ( IOException e ) {
@@ -219,7 +219,7 @@ public class Differential {
         System.out.println("Filter created..");
         System.out.println("NumHashes: " + bloomDifferential.bloomFilter.numHashes());
 
-        bloomDifferential.bloomFilter.countZeros();
+//        bloomDifferential.bloomFilter.countZeros();
 
         System.out.println("Search for: record in differential [ARTICLE_DET 1_NUM Section_NOUN 1_NUM ]");
         System.out.println(bloomDifferential.retrieveRecord("ARTICLE_DET 1_NUM Section_NOUN 1_NUM "));
