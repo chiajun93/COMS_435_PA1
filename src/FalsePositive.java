@@ -1,5 +1,7 @@
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.HashSet;
-import java.util.Random;
+import java.util.Scanner;
 
 public class FalsePositive {
     private BloomFilterDet bloomFilterDet;
@@ -7,8 +9,7 @@ public class FalsePositive {
     private HashSet<String> dict;
     private int falseCountDet;
     private int falseCountRan;
-    private int numTests;
-    private static final String LETTERS = "abcdefghijklmnopqrstuvwxyz0123456789";
+    private int bitsPerElement;
 
     /**
      * Constructor for calculating the false positive in bloom filter det with a given number of tests
@@ -23,34 +24,32 @@ public class FalsePositive {
         dict = new HashSet<>();
         falseCountDet = 0;
         falseCountRan = 0;
-        this.numTests = numTests;
+        this.bitsPerElement = bitsPerElement;
 
-        for (int i = 0; i < numTests; i++) {
-            String s = genStrings();
-            if (i < numTests / 2){
-                bloomFilterDet.add(s);
-                bloomFilterRan.add(s);
+        File file = new File("grams.txt");
+        try{
+            Scanner scan = new Scanner(file);
+            for (int i = 0; i < numTests; i++) {
+                String s = scan.nextLine();
+                if (i < numTests / 2){
+                    bloomFilterDet.add(s);
+                    bloomFilterRan.add(s);
+                }
+                else
+                    dict.add(s);
             }
-            else
-                dict.add(s);
+        } catch(FileNotFoundException e){
+            e.printStackTrace();
         }
     }
 
     /**
-     * Randomly generate a string with the fixed length
+     * Returns the optimal values for the false positive rate
      *
-     * @return generated string
+     * @return false positive
      */
-    private String genStrings() {
-        Random rand = new Random();
-        StringBuilder sb = new StringBuilder(6);
-
-        for (int i = 0; i < 6; i++) {
-            int ith = rand.nextInt(LETTERS.length());
-            sb.append(LETTERS.charAt(ith));
-        }
-
-        return sb.toString();
+    public double getOptFalsePositive() {
+        return Math.pow(0.618, bitsPerElement);
     }
 
     /**
@@ -76,11 +75,8 @@ public class FalsePositive {
     }
 
     public static void main(String[] args) {
-        BloomFilterDet det = new BloomFilterDet(30000, 4);
-
-        FalsePositive fp = new FalsePositive(30000, 4, 20000);
+        FalsePositive fp = new FalsePositive(10000, 4, 40000);
         fp.getFalsePositive();
-        System.out.println("Optimal false positive of BloomFilterDet: " + det.getOptFalsePositive());
+        System.out.println("Optimal false positive of BloomFilterDet: " + fp.getOptFalsePositive());
     }
-
 }
