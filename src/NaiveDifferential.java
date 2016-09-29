@@ -1,78 +1,46 @@
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.HashSet;
-import java.util.Scanner;
-
-/**
- * Created by chiajun on 9/26/16.
- */
 public class NaiveDifferential extends Differential {
-    private HashSet<String> diffData;
-    private HashSet<String> database;
 
     /**
-     * Constructor for a naive differential application
+     *  Use a bloom filter for differential references
      */
-    public NaiveDifferential() {
-        createData("DiffFile.txt");
-        createData("database.txt");
+    NaiveDifferential(String databaseFilePath, String differentialFilePath){
+        super(databaseFilePath, differentialFilePath);
     }
 
-    private void createData(String filepath) {
-        File inFile = new File(filepath);
+    /**
+     * Retrieves a record based on differential mode
+     * Generally: Hits differential file if: In Naive mode OR it's in the bloom fiter
+     * Note: Also hits the differential file if our bloom filter is null
+     * @param key The key to the desired record
+     * @return The record if it can be found, else an empty string
+     */
+    public String retrieveRecord(String key){
+        String record;
 
-        try {
-            Scanner scan = new Scanner(inFile);
-            String line;
-            String keys;
-            if(filepath.contains("DiffFile.txt")){
-                diffData = new HashSet<>();
+        if ( DEBUG ) System.out.println("Querying differential file.");
 
-                while (scan.hasNextLine()) {
-                    line = scan.nextLine();
-                    keys = getKeyFromLine(line);
-                    diffData.add(keys);
-                }
-            }
-            else {
-                database = new HashSet<>();
+        record = getRecordFromFile(key, differentialFilePath);
 
-                while (scan.hasNextLine()) {
-                    line = scan.nextLine();
-                    keys = getKeyFromLine(line);
-                    database.add(keys);
-                }
-            }
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+        if ( !record.equals("") ) {
+            if ( DEBUG ) System.out.println("Found in differential file.");
+            return record;
         }
-    }
 
-    @Override
-    protected String retrieveRecord(String key) {
-        String record = "";
-        if (!diffData.contains(key)) {
-            System.out.println("Records in not found in differential file. Looking at database now...");
 
-            if(database.contains(key))
-                System.out.println("Found the key in database.");
+        if ( DEBUG ) {
+            System.out.println("Not found in differential file.");
+            System.out.println("Querying database file.");
+        }
+
+        record = getRecordFromFile(key, databaseFilePath);
+
+        if ( DEBUG ) {
+            if ( record.length() > 0 )
+                System.out.println("Found in database.");
             else
-                System.out.println("Key does not exist in both database and differential file.");
+                System.out.println("Not Found in database.");
         }
 
         return record;
-    }
-
-    public HashSet<String> getDiffData() {
-        return diffData;
-    }
-
-    public static void main(String[] args) {
-        NaiveDifferential naiveDifferential = new NaiveDifferential();
-
-        String record = naiveDifferential.retrieveRecord("ARE A FEW THINGS");
-        System.out.println(record);
-
     }
 }
